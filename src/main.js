@@ -13,7 +13,6 @@ const app = createApp(App)
 app.use(ElementPlus)
 
 // 懒加载
-app.use(Lazyload);
 
 app.use(createPinia())
 
