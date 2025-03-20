@@ -1,6 +1,5 @@
 import axios from "axios";
 import qs from "qs";
-import { showToast } from "vant";
 
 export const host = {
   // 'chat': 'https://task.bookan.com.cn:52865', // 语言大模型
@@ -86,10 +85,10 @@ export function request(url = "", params = {}, type = "GET", configData = {}) {
     promise
       .then((res) => {
         if (res?.data?.data?.code === -1) {
-          showToast({
-            type: "fail",
-            message: res.data.data.msg,
-          });
+          // showToast({
+          //   type: "fail",
+          //   message: res.data.data.msg,
+          // });
           reject(res.data.data);
           return;
         }
