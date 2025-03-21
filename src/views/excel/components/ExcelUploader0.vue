@@ -55,6 +55,11 @@
           />
         </template>
       </el-table-column>
+      <el-table-column prop="name" label="合并订单" width="80">
+        <template #default="scope">
+          <span :class="scope.row.combine> 1 ? 'excel--combine': ''">{{scope.row.combine}}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="phone" label="手机" width="150px">
         <template #default="scope">
           <el-input
@@ -105,6 +110,7 @@
               :preview-teleported="true"
               :hide-on-click-modal="true"
             />
+            <span v-if="!scope.row.url" :class="!scope.row.url ? 'excel--imglot':''">缺失图片</span>
           </div>
         </template>
       </el-table-column>
@@ -205,11 +211,21 @@ function formatDate(sheetlist) {
 
 // 格式化收货信息
 const resetName = () => {
+  const copyTableED = []
   tableData.value.forEach((item, index) => {
     const info = splitReceivingInfo(item.receivingInfo)
     item.name = info.name.trim();
     item.phone = info.phone.trim();
     item.address = info.address.trim();
+    const isSister = copyTableED.find(itt => formatCity(item.address) == formatCity(itt?.address || '') && formatName(itt?.name.trim()).trim() == formatName(item.name.trim()).trim())
+    if (isSister) {
+      item.combine = 0
+      const finx = tableData.value.findIndex(itt => isSister && formatCity(isSister.address) == formatCity(itt.address) && formatName(isSister.name.trim()) == formatName(itt.name.trim()))
+      tableData.value[finx].combine+=1
+    } else { // 有相同的
+      copyTableED.push(item)
+      item.combine = 1
+    }
   });
 };
 
@@ -368,8 +384,40 @@ const formatCity = (address) => {
   return address.split(" ")[0]
 }
 
+
+// 导出图片文件夹(平铺)
+async function exportFoldersPingpu() {
+  // 获取当天月、日
+  const date = new Date();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = date.getFullYear();
+  const zip = new JSZip();
+  const copyTable = _.cloneDeep(tableData.value);
+  const qianTable = []
+  copyTable.forEach((item, index) => {
+    if (item.url) {
+      const url2 = item.url.split(",")[1];
+      item.image = url2;
+    }
+  });
+  const folderName = `欢-${month}.${day}-图片`;
+  const folder = zip.folder(folderName);
+  copyTable.forEach((item, index) => {
+    if (item.url && item.name) {
+      // 解压缩图片数据
+      const imageName = `${formatCity(item.address)}+${item.name}+${item.size}cm+pp背胶+1张(${Math.floor(Math.random()*10000000)}).jpg`;
+      folder.file(imageName, item.image, { base64: true });
+    }
+  });
+
+  zip.generateAsync({ type: "blob" }).then((content) => {
+    saveAs(content, `欢-${month}.${day}-pp背胶-图片平铺.zip`);
+  });
+}
+
 // 导出图片文件夹
-async function exportFolders() {
+async function exportFolders1() {
   // 获取当天月、日
   const date = new Date();
   const month = date.getMonth() + 1;
@@ -395,7 +443,7 @@ async function exportFolders() {
   });
 
   copyTableED.forEach((item, index) => {
-      const folderName = `${item.name}+${item.address}`;
+      const folderName = `${item.name}+${item.combine}张+${item.address}`;
       const folder = zip.folder(folderName);
       copyTable.forEach(table => {
         const isSisterItem = formatCity(table.address) == formatCity(item.address) && formatName(table.name.trim()).trim() == formatName(item.name.trim()).trim()
@@ -407,8 +455,13 @@ async function exportFolders() {
   });
 
   zip.generateAsync({ type: "blob" }).then((content) => {
-    saveAs(content, `欢-${month}.${day}-pp背胶.zip`);
+    saveAs(content, `欢-${month}.${day}-pp背胶-按收货人分.zip`);
   });
+}
+
+const exportFolders = () => {
+  exportFoldersPingpu()
+  exportFolders1()
 }
 
 // 导出规格尺寸，自己算账用
@@ -443,7 +496,7 @@ const exportExcelSize = () => {
   const year = date.getFullYear();
 
   const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-  saveAs(blob, `自己核对用${month}-${day}.xlsx`);
+  saveAs(blob, `完整数据${month}-${day}.xlsx`);
 };
 
 // 拆分姓名的[]   张三[0029] => 张三

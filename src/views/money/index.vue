@@ -120,6 +120,11 @@
           <span style="color: red;">{{ scope.row.total }}</span>
         </template>
       </el-table-column>
+      <el-table-column prop="name" label="合并订单" width="80">
+        <template #default="scope">
+          <span :class="scope.row.combine> 1 ? 'excel--combine': ''">{{scope.row.combine}}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="size" label="运费数量" width="80px">
         <template #default="scope">
           <span style="color: blue;">{{ scope.row.isOne }}</span>
@@ -266,11 +271,21 @@ function formatDate(sheetlist) {
 
 // 格式化收货信息
 const resetName = () => {
+  const copyTableED = []
   tableData.value.forEach((item, index) => {
     const info = splitReceivingInfo(item.receivingInfo);
     item.name = info.name.trim();
     item.phone = info.phone.trim();
     item.address = info.address.trim();
+    const isSister = copyTableED.find(itt => formatCity(item.address) == formatCity(itt?.address || '') && formatName(itt?.name.trim()).trim() == formatName(item.name.trim()).trim())
+    if (isSister) {
+      item.combine = 0
+      const finx = tableData.value.findIndex(itt => isSister && formatCity(isSister.address) == formatCity(itt.address) && formatName(isSister.name.trim()) == formatName(itt.name.trim()))
+      tableData.value[finx].combine+=1
+    } else { // 有相同的
+      copyTableED.push(item)
+      item.combine = 1
+    }
   });
 };
 
@@ -403,4 +418,11 @@ const exportExcel = () => {
     }
   }
 }
+.excel{
+    &--combine{
+      color: red;
+      font-size: 18px;
+      font-weight: 700;
+    }
+  }
 </style>
