@@ -158,6 +158,7 @@ const combineProduceId = [
       "704003554044",
       "711132205139",
       "715606833207",
+      "705397884439",
     ]
   },
   {
@@ -383,14 +384,26 @@ async function exportFolders() {
       item.image = url2;
     }
   });
-  const folderName = `欢-${month}.${day}-pp背胶`;
-  const folder = zip.folder(folderName);
+  const copyTableED = []
   copyTable.forEach((item, index) => {
     if (item.url && item.name) {
-      // 解压缩图片数据
-      const imageName = `${formatCity(item.address)}+${item.name}+${item.size}cm+pp背胶+1张(${Math.floor(Math.random()*10000000)}).jpg`;
-      folder.file(imageName, item.image, { base64: true });
+      const isSister = copyTableED.some(itt => formatCity(item.address) == formatCity(itt?.address || '') && formatName(itt?.name.trim()).trim() == formatName(item.name.trim()).trim())
+      if (!isSister) {
+        copyTableED.push(item)
+      }
     }
+  });
+
+  copyTableED.forEach((item, index) => {
+      const folderName = `${item.name}+${item.address}`;
+      const folder = zip.folder(folderName);
+      copyTable.forEach(table => {
+        const isSisterItem = formatCity(table.address) == formatCity(item.address) && formatName(table.name.trim()).trim() == formatName(item.name.trim()).trim()
+        if (isSisterItem) {
+          const imageName = `${table.size}cm(${Math.floor(Math.random()*10000000)}).jpg`;
+          folder.file(imageName, table.image, { base64: true });
+        }
+      })
   });
 
   zip.generateAsync({ type: "blob" }).then((content) => {
